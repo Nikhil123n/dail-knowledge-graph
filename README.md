@@ -414,3 +414,28 @@ In Docker, the frontend nginx config proxies `/api/` requests to `http://backend
 | Data | pandas, openpyxl |
 | Frontend | React 18, Vite, Tailwind CSS v4, D3.js v7, React Router v6 |
 | Container | Docker Compose v3.9 |
+
+---
+
+## Demo Queries
+
+Three powerful queries now possible that were not possible with the flat spreadsheet:
+
+### 1. Top defendants by case count
+```
+GET /api/v1/graph/defendants?limit=10
+```
+
+### 2. Natural language research question
+```
+POST /api/v1/search/
+{"question": "Which organizations face the most BIPA claims in Illinois?"}
+```
+
+### 3. All cases involving a specific AI system
+```
+POST /api/v1/search/
+{"question": "Find all cases involving facial recognition AI"}
+```
+
+These queries traverse relationships across 382 cases, 546 organizations, and 3,732 graph edges — impossible in the original flat-file system.
