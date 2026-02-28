@@ -82,7 +82,7 @@ async def health():
             settings.neo4j_user,
             settings.neo4j_password,
         )
-        overview = await neo4j_service.get_graph_overview(driver)
+        overview = await neo4j_service.get_node_counts(driver)
         return {"status": "ok", "neo4j": "connected", "graph": overview}
     except Exception as e:
         return {"status": "degraded", "neo4j": "unavailable", "error": str(e)}
