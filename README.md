@@ -105,8 +105,9 @@ dail-knowledge-graph/
 │       └── ingest/
 │           ├── convert_xlsx.py         # Step 1: Excel → clean CSV (run once)
 │           ├── seed_from_excel.py      # Step 2: CSV → Neo4j (cases, dockets, docs, secondary sources)
+│           ├── export_sql.py           # Step 3 (alt): CSV → SQLite + schema.sql + data.sql
 │           ├── demo_seed.py            # Optional: 8 synthetic demo cases
-│           ├── entity_extractor.py     # Step 3: Gemini-powered org/AI system linking
+│           ├── entity_extractor.py     # Step 4: Gemini-powered org/AI system linking
 │           └── scheduler.py           # APScheduler weekly CourtListener job
 │
 └── frontend/
@@ -124,7 +125,9 @@ dail-knowledge-graph/
             ├── ResearchNavigator.jsx   # NL search (Direction 5)
             ├── WaveDetector.jsx        # Litigation waves (Direction 4)
             ├── ReviewQueue.jsx         # Human-in-the-loop approval
-            └── CaseDetail.jsx          # Full case view with neighbors
+            ├── CaseDetail.jsx          # Full case view with neighbors
+            ├── ApiExplorer.jsx         # Live REST console — all 18 endpoints in-browser
+            └── DataPipeline.jsx        # Architecture diagram + data transformation showcase
 ```
 
 ---
@@ -401,6 +404,8 @@ Response includes: generated Cypher, explanation, raw results, and a plain-Engli
 | `/waves` | Wave Detector | Litigation cluster detection |
 | `/review` | Review Queue | Human-in-the-loop extraction review |
 | `/cases/:id` | Case Detail | Full case view with related nodes |
+| `/api` | API Explorer | Live REST console — execute all 18 endpoints in-browser |
+| `/pipeline` | Architecture | System diagram + before/after data transformation showcase |
 
 ---
 
