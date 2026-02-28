@@ -2,7 +2,7 @@ import asyncio
 import json
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, UTC
 from dotenv import load_dotenv
 from app.services.neo4j_service import get_driver
 from app.services.claude_service import extract_entities
@@ -81,7 +81,7 @@ async def process_all_cases(driver, api_key: str):
                         caseId=case["id"],
                         payload=json.dumps(org),
                         conf=org["confidence"],
-                        ts=datetime.utcnow().isoformat(),
+                        ts=datetime.now(UTC).isoformat(),
                         rawText=case.get("orgsText", ""),
                     )
                     queued += 1
@@ -119,7 +119,7 @@ async def process_all_cases(driver, api_key: str):
                         caseId=case["id"],
                         payload=json.dumps(system),
                         conf=system["confidence"],
-                        ts=datetime.utcnow().isoformat(),
+                        ts=datetime.now(UTC).isoformat(),
                     )
                     queued += 1
 
