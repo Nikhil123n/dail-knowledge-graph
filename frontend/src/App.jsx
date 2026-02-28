@@ -5,6 +5,7 @@ import ResearchNavigator from "./pages/ResearchNavigator.jsx";
 import WaveDetector from "./pages/WaveDetector.jsx";
 import ReviewQueue from "./pages/ReviewQueue.jsx";
 import CaseDetail from "./pages/CaseDetail.jsx";
+import ApiExplorer from "./pages/ApiExplorer.jsx";
 
 function NavItem({ to, label }) {
   return (
@@ -40,6 +41,7 @@ export default function App() {
             <NavItem to="/search" label="Research Navigator" />
             <NavItem to="/waves" label="Wave Detector" />
             <NavItem to="/review" label="Review Queue" />
+            <NavItem to="/api" label="API Explorer" />
           </nav>
         </div>
       </header>
@@ -52,6 +54,7 @@ export default function App() {
           <Route path="/waves" element={<WaveDetector />} />
           <Route path="/review" element={<ReviewQueue />} />
           <Route path="/cases/:id" element={<CaseDetail />} />
+          <Route path="/api" element={<ApiExplorer />} />
         </Routes>
       </main>
 
