@@ -251,7 +251,7 @@ Frontend available at: http://localhost:5173
 
 ## Data Seeding
 
-This is a three-step pipeline for loading the real DAIL Excel data.
+This is a four-step pipeline for loading the real DAIL Excel data.
 
 ### Step 1 — Convert Excel to CSV
 
@@ -303,6 +303,26 @@ Expected output:
 ```
 Processing 179 cases for entity extraction...
 Entity extraction complete: 476 auto-approved, 5 queued for review
+```
+
+### Step 4 — SQL Export (optional)
+
+Exports the clean CSV data to a portable SQLite database and generates SQL schema + INSERT
+files compatible with PostgreSQL, MySQL, and SQLite.
+
+```bash
+python -m app.ingest.export_sql
+```
+
+Outputs to `data/`:
+- `dail.db` — self-contained SQLite database (open with any SQL tool)
+- `schema.sql` — `CREATE TABLE` statements for any SQL engine
+- `data.sql` — `INSERT` statements for all four tables
+
+To load into PostgreSQL:
+```bash
+psql -d your_db -f data/schema.sql
+psql -d your_db -f data/data.sql
 ```
 
 ### Final graph state
