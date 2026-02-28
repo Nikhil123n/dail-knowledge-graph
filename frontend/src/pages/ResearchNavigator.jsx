@@ -10,6 +10,35 @@ const EXAMPLE_QUESTIONS = [
   "Which cases involve both copyright infringement and AI training data?",
 ];
 
+// Map raw Neo4j property keys to human-readable column headers
+const COLUMN_LABELS = {
+  "c.caption": "Case Name",
+  "c.status": "Case Status",
+  "c.dateFiled": "Date Filed",
+  "c.jurisdictionType": "Jurisdiction Type",
+  "c.isClassAction": "Class Action",
+  "c.areaOfApplication": "Area of Application",
+  "c.causeOfAction": "Cause of Action",
+  "c.algorithmNames": "Algorithm Names",
+  "c.summarySignificance": "Summary of Significance",
+  "c.source": "Source",
+  "o.canonicalName": "Organization",
+  "o.name": "Organization Name",
+  "a.name": "AI System",
+  "a.category": "Category",
+  "court.name": "Court",
+  "lt.name": "Legal Theory",
+};
+
+function formatColumnLabel(col) {
+  if (COLUMN_LABELS[col]) return COLUMN_LABELS[col];
+  // Convert camelCase aliases (e.g. "caseCount" → "Case Count", "aiSystem" → "Ai System")
+  return col
+    .replace(/([A-Z])/g, " $1")
+    .replace(/^./, (s) => s.toUpperCase())
+    .trim();
+}
+
 function ResultRow({ row, index }) {
   const entries = Object.entries(row);
   return (
@@ -105,6 +134,25 @@ export default function ResearchNavigator() {
 
       {result && (
         <div className="space-y-5">
+          {/* Fallback warning */}
+          {result.usedFallback && (
+            <div className="bg-amber-900/40 border border-amber-600 rounded-lg px-4 py-3 flex items-start gap-3">
+              <span className="text-amber-400 text-lg leading-none mt-0.5">⚠</span>
+              <div>
+                <p className="text-amber-300 text-sm font-semibold">
+                  AI query generation failed — showing fallback results
+                </p>
+                <p className="text-amber-400/80 text-xs mt-1">
+                  Gemini could not translate your question into a valid graph query after 3
+                  attempts. The table below shows a generic case list, not results tailored to
+                  your question. Try rephrasing using specific organization names, legal
+                  terms (e.g. "copyright infringement"), or technology categories (e.g.
+                  "facial recognition").
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Narrative */}
           <div className="bg-indigo-900/30 border border-indigo-700 rounded-lg p-5">
             <h3 className="text-indigo-400 font-semibold mb-2 text-sm uppercase tracking-wide">
@@ -152,7 +200,7 @@ export default function ResearchNavigator() {
                           key={col}
                           className="px-3 py-2 text-left text-xs font-medium text-slate-400 uppercase tracking-wide"
                         >
-                          {col}
+                          {formatColumnLabel(col)}
                         </th>
                       ))}
                     </tr>

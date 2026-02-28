@@ -149,48 +149,96 @@ async def classify_incoming_case(
         }
 
 
+_NL_TO_CYPHER_SYSTEM = """You are an expert Neo4j Cypher query generator for an AI litigation knowledge graph.
+
+GRAPH SCHEMA
+============
+Nodes and their properties:
+- Case: id, caption, status, dateFiled, jurisdictionType, areaOfApplication (list),
+        causeOfAction (list), algorithmNames (list), isClassAction, summarySignificance, source
+- Organization: name, canonicalName
+- AISystem: name, category  (category values: LLM, biometric, autonomous, recommender, classifier, other)
+- LegalTheory: name
+- Court: name, jurisdictionType
+
+Relationships (direction matters):
+  (Case)-[:NAMED_DEFENDANT]->(Organization)
+  (Case)-[:INVOLVES_SYSTEM]->(AISystem)
+  (Case)-[:ASSERTS_CLAIM]->(LegalTheory)
+  (Case)-[:FILED_IN]->(Court)
+
+STRICT RULES
+============
+1. ONLY use: MATCH, WHERE, WITH, RETURN, ORDER BY, LIMIT, COUNT, DISTINCT, COLLECT
+2. NEVER use: DELETE, DETACH DELETE, DROP, CREATE, MERGE, SET, REMOVE
+3. ALWAYS add LIMIT (maximum 50)
+4. ALWAYS use readable aliases in RETURN clause (e.g. c.caption AS caseName, NOT c.caption)
+5. Text searches: use toLower() on both sides for case-insensitive matching
+6. List property searches: use ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'keyword')
+7. Date comparisons: dateFiled is stored as "YYYY-MM-DD" string — compare with >= / <=
+8. For "more than N cases" or counting: use WITH agg pattern before WHERE
+9. Never use parameters {} — inline all values directly in the query
+
+QUERY EXAMPLES
+==============
+Q: Which organizations have been sued in more than 3 AI cases?
+A: {"cypher": "MATCH (c:Case)-[:NAMED_DEFENDANT]->(o:Organization) WITH o, COUNT(c) AS caseCount WHERE caseCount > 3 RETURN o.canonicalName AS organization, caseCount ORDER BY caseCount DESC LIMIT 50", "explanation": "Counts cases per defendant organization, filters to those named in more than 3 cases, and returns them ordered by most-sued first.", "parameters": {}}
+
+Q: Show me all facial recognition cases filed in federal courts.
+A: {"cypher": "MATCH (c:Case)-[:FILED_IN]->(court:Court) WHERE ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'facial') AND toLower(court.jurisdictionType) CONTAINS 'federal' RETURN c.caption AS caseName, c.dateFiled AS dateFiled, court.name AS court LIMIT 50", "explanation": "Finds cases tagged with facial recognition in their area of application that were filed in federal courts.", "parameters": {}}
+
+Q: Which AI systems appear in employment discrimination lawsuits?
+A: {"cypher": "MATCH (c:Case)-[:INVOLVES_SYSTEM]->(a:AISystem) WHERE ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'employment') OR ANY(x IN c.causeOfAction WHERE toLower(x) CONTAINS 'discrimination') RETURN DISTINCT a.name AS aiSystem, a.category AS category, COUNT(c) AS caseCount ORDER BY caseCount DESC LIMIT 50", "explanation": "Finds AI systems linked to cases involving employment or discrimination causes of action.", "parameters": {}}
+
+Q: Find class action cases involving generative AI filed after 2022.
+A: {"cypher": "MATCH (c:Case)-[:INVOLVES_SYSTEM]->(a:AISystem) WHERE c.isClassAction = 'Yes' AND c.dateFiled >= '2023-01-01' AND (toLower(a.category) CONTAINS 'llm' OR ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'generative')) RETURN c.caption AS caseName, c.dateFiled AS dateFiled, a.name AS aiSystem LIMIT 50", "explanation": "Finds class action cases linked to LLM or generative AI systems filed after 2022.", "parameters": {}}
+
+Q: What legal theories are most common in autonomous vehicle litigation?
+A: {"cypher": "MATCH (c:Case)-[:INVOLVES_SYSTEM]->(a:AISystem), (c)-[:ASSERTS_CLAIM]->(lt:LegalTheory) WHERE toLower(a.category) CONTAINS 'autonomous' OR ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'vehicle') RETURN lt.name AS legalTheory, COUNT(c) AS caseCount ORDER BY caseCount DESC LIMIT 50", "explanation": "Counts legal theories asserted in cases involving autonomous systems or vehicles.", "parameters": {}}
+
+Q: Which cases involve both copyright infringement and AI training data?
+A: {"cypher": "MATCH (c:Case)-[:ASSERTS_CLAIM]->(lt:LegalTheory) WHERE toLower(lt.name) CONTAINS 'copyright' WITH c MATCH (c)-[:INVOLVES_SYSTEM]->(a:AISystem) WHERE ANY(x IN c.causeOfAction WHERE toLower(x) CONTAINS 'training') OR ANY(x IN c.algorithmNames WHERE toLower(x) CONTAINS 'training') RETURN DISTINCT c.caption AS caseName, c.dateFiled AS dateFiled, c.status AS status LIMIT 50", "explanation": "Finds cases asserting copyright claims that also involve AI training-related systems or causes of action.", "parameters": {}}
+
+OUTPUT FORMAT
+=============
+Respond with ONLY this JSON object (no markdown, no code fences, no prose):
+{"cypher": string, "explanation": string, "parameters": {}}"""
+
+
 async def natural_language_to_cypher(api_key: str, question: str) -> dict:
     """Translate a natural language research question to a Neo4j Cypher query."""
-    system = (
-        "You are a Neo4j Cypher query generator for an AI litigation knowledge graph.\n"
-        "Node types: Case, Organization, AISystem, LegalTheory, Court\n"
-        "Key relationships:\n"
-        "  (Case)-[:NAMED_DEFENDANT]->(Organization)\n"
-        "  (Case)-[:INVOLVES_SYSTEM]->(AISystem)\n"
-        "  (Case)-[:ASSERTS_CLAIM]->(LegalTheory)\n"
-        "  (Case)-[:FILED_IN]->(Court)\n"
-        "  (Case)-[:HAS_DOCKET]->(Docket)\n"
-        "  (Case)-[:HAS_DOCUMENT]->(Document)\n"
-        "  (Case)-[:HAS_SECONDARY_SOURCE]->(SecondarySource)\n"
-        "Case properties: id, caption, status, dateFiled, jurisdictionType, "
-        "areaOfApplication (list), causeOfAction (list), algorithmNames (list), "
-        "isClassAction, summarySignificance\n"
-        "Organization properties: canonicalName, name\n"
-        "AISystem properties: name, category\n\n"
-        "Rules:\n"
-        "- Always LIMIT results to 50 maximum\n"
-        "- Only generate read queries (MATCH/RETURN/WITH)\n"
-        "- Never use DETACH DELETE, DROP, CREATE, MERGE, SET, REMOVE\n"
-        "- Return JSON only, no prose, no markdown: "
-        '{"cypher": string, "explanation": string, "parameters": {}}'
-    )
     user = f"Research question: {question}\n\nGenerate the Cypher query."
-    try:
-        text = await _generate(api_key, system, user, max_tokens=1024, json_mode=True)
-        result = _extract_json(text)
-        # Safety guard: block write operations
-        cypher = result.get("cypher", "")
-        for word in ["DELETE", "DROP", "CREATE", "MERGE", "SET ", "REMOVE"]:
-            if word in cypher.upper():
-                raise ValueError(f"Forbidden Cypher keyword: {word}")
-        return result
-    except Exception as e:
-        logger.error(f"Cypher generation failed: {e}")
-        return {
-            "cypher": "MATCH (c:Case) RETURN c.caption, c.status LIMIT 10",
-            "explanation": "Fallback query — original question could not be parsed.",
-            "parameters": {},
-        }
+    for attempt in range(3):
+        try:
+            text = await _generate(
+                api_key, _NL_TO_CYPHER_SYSTEM, user, max_tokens=1024, json_mode=True
+            )
+            result = _extract_json(text)
+            # Safety guard: block write operations
+            cypher = result.get("cypher", "")
+            if not cypher:
+                raise ValueError("Empty cypher returned")
+            for word in ["DELETE", "DROP", "CREATE", "MERGE", "SET ", "REMOVE"]:
+                if word in cypher.upper():
+                    raise ValueError(f"Forbidden Cypher keyword: {word}")
+            result["isFallback"] = False
+            return result
+        except Exception as e:
+            logger.warning(f"Cypher generation attempt {attempt + 1} failed: {e}")
+            if attempt < 2:
+                await asyncio.sleep(2 ** attempt)
+    logger.error("All Cypher generation attempts failed — using fallback query")
+    return {
+        "cypher": (
+            "MATCH (c:Case) "
+            "RETURN c.caption AS caseName, c.status AS status, "
+            "c.dateFiled AS dateFiled, c.jurisdictionType AS jurisdictionType "
+            "LIMIT 10"
+        ),
+        "explanation": "Fallback query — Gemini could not parse the question into a valid Cypher query. Try rephrasing your question using specific case details, organization names, or legal terms.",
+        "parameters": {},
+        "isFallback": True,
+    }
 
 
 async def narrate_graph_results(

@@ -100,3 +100,4 @@ class SearchResponse(BaseModel):
     results: List[dict]
     narrative: str
     processingTimeMs: int
+    usedFallback: bool = False

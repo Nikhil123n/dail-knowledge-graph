@@ -24,9 +24,10 @@ async def natural_language_search(
     cypher_result = await claude_service.natural_language_to_cypher(
         settings.gemini_api_key, body.question
     )
-    cypher = cypher_result.get("cypher", "MATCH (c:Case) RETURN c.caption LIMIT 10")
+    cypher = cypher_result.get("cypher", "MATCH (c:Case) RETURN c.caption AS caseName LIMIT 10")
     explanation = cypher_result.get("explanation", "")
     params = cypher_result.get("parameters", {})
+    used_fallback = cypher_result.get("isFallback", False)
 
     # Step 2: Execute Cypher (read-only guard already applied in claude_service)
     try:
@@ -51,4 +52,5 @@ async def natural_language_search(
         results=results,
         narrative=narrative,
         processingTimeMs=elapsed_ms,
+        usedFallback=used_fallback,
     )
