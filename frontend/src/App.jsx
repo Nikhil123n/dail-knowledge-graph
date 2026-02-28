@@ -56,7 +56,7 @@ export default function App() {
       </main>
 
       <footer className="border-t border-slate-700 bg-slate-800 px-6 py-3 text-center text-xs text-slate-500">
-        DAIL Living Case Graph · GWU Law · Built with Neo4j + FastAPI + Claude
+        DAIL Living Case Graph · GWU Law · Built with Neo4j + FastAPI + Gemini
       </footer>
     </div>
   );
