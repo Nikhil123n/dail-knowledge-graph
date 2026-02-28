@@ -3,7 +3,7 @@ import logging
 import os
 import uuid
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, UTC
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.services.courtlistener import CourtListenerClient, AI_LITIGATION_KEYWORDS
 from app.services.claude_service import classify_incoming_case
@@ -91,7 +91,7 @@ async def ingest_new_cases() -> dict:
                             causes=classification.get("causeOfAction", []),
                             conf=confidence,
                             url=staging.absoluteUrl,
-                            ts=datetime.utcnow().isoformat(),
+                            ts=datetime.now(UTC).isoformat(),
                         )
                         cases_added += 1
                     else:
@@ -117,7 +117,7 @@ async def ingest_new_cases() -> dict:
                             docketNumber=staging.docketNumber,
                             conf=confidence,
                             url=staging.absoluteUrl,
-                            ts=datetime.utcnow().isoformat(),
+                            ts=datetime.now(UTC).isoformat(),
                         )
                         # Create review item
                         item_id = str(uuid.uuid4())
@@ -133,7 +133,7 @@ async def ingest_new_cases() -> dict:
                             caseId=case_id,
                             payload=json.dumps(classification),
                             conf=confidence,
-                            ts=datetime.utcnow().isoformat(),
+                            ts=datetime.now(UTC).isoformat(),
                         )
                         cases_queued += 1
 
@@ -148,7 +148,7 @@ async def ingest_new_cases() -> dict:
                     casesQueued: $queued
                 })
             """,
-                ts=datetime.utcnow().isoformat(),
+                ts=datetime.now(UTC).isoformat(),
                 found=cases_found,
                 added=cases_added,
                 queued=cases_queued,
