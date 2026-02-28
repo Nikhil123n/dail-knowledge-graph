@@ -100,8 +100,10 @@ async def seed_cases(driver):
                     jurisdictionType: rec.jurisdictionType,
                     status: rec.status,
                     summarySignificance: rec.summarySignificance,
+                    summaryFacts: rec.summaryFacts,
                     mostRecentActivity: rec.mostRecentActivity,
                     isClassAction: rec.isClassAction,
+                    dateAdded: rec.dateAdded,
                     source: rec.source
                 }
             """,
