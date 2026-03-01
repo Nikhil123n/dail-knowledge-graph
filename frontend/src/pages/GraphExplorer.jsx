@@ -139,10 +139,22 @@ export default function GraphExplorer() {
   const [graphData, setGraphData] = useState({ nodes: [], links: [] });
   const [selectedNode, setSelectedNode] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [allDefendants, setAllDefendants] = useState([]);
 
   useEffect(() => {
-    fetchTopDefendants(30).then(setDefendants);
+    // Load top 200 once; used for both the default list and client-side search
+    fetchTopDefendants(200).then((data) => {
+      setDefendants(data.slice(0, 30));
+      setAllDefendants(data);
+    });
   }, []);
+
+  const filteredDefendants = searchQuery.trim()
+    ? allDefendants.filter((d) =>
+        d.canonicalName.toLowerCase().includes(searchQuery.trim().toLowerCase())
+      )
+    : defendants;
 
   const loadDefendantGraph = useCallback(async (orgName) => {
     if (!orgName) return;
@@ -246,23 +258,55 @@ export default function GraphExplorer() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5">
-        {/* Sidebar: defendant list */}
-        <div className="bg-slate-800 rounded-lg p-4 space-y-1 overflow-y-auto max-h-[540px]">
-          <h3 className="text-xs text-slate-400 uppercase mb-2 font-medium">Top Defendants</h3>
-          {defendants.map((d) => (
-            <button
-              key={d.canonicalName}
-              onClick={() => setSelectedDefendant(d.canonicalName)}
-              className={`w-full text-left px-3 py-2 rounded text-xs transition-colors ${
-                selectedDefendant === d.canonicalName
-                  ? "bg-indigo-700 text-white"
-                  : "text-slate-300 hover:bg-slate-700"
-              }`}
-            >
-              <span className="font-medium truncate block">{d.canonicalName}</span>
-              <span className="text-slate-400">{d.caseCount} cases</span>
-            </button>
-          ))}
+        {/* Sidebar: search + defendant list */}
+        <div className="bg-slate-800 rounded-lg p-4 flex flex-col gap-3 overflow-y-auto max-h-[540px]">
+          {/* Search input */}
+          <div className="relative">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search organizations..."
+              className="w-full bg-slate-700 text-slate-200 text-xs placeholder-slate-500 rounded px-3 py-2 pr-7 outline-none focus:ring-1 focus:ring-indigo-500"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-sm leading-none"
+              >
+                ×
+              </button>
+            )}
+          </div>
+
+          {/* List header */}
+          <div className="space-y-1">
+            <h3 className="text-xs text-slate-400 uppercase font-medium">
+              {searchQuery.trim()
+                ? `${filteredDefendants.length} result${filteredDefendants.length !== 1 ? "s" : ""}`
+                : "Top Defendants"}
+            </h3>
+            {filteredDefendants.length === 0 && searchQuery.trim() && (
+              <p className="text-xs text-slate-500 px-1">No organizations found.</p>
+            )}
+            {filteredDefendants.map((d) => (
+              <button
+                key={d.canonicalName}
+                onClick={() => {
+                  setSelectedDefendant(d.canonicalName);
+                  loadDefendantGraph(d.canonicalName);
+                }}
+                className={`w-full text-left px-3 py-2 rounded text-xs transition-colors ${
+                  selectedDefendant === d.canonicalName
+                    ? "bg-indigo-700 text-white"
+                    : "text-slate-300 hover:bg-slate-700"
+                }`}
+              >
+                <span className="font-medium truncate block">{d.canonicalName}</span>
+                <span className="text-slate-400">{d.caseCount} cases</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Graph */}

@@ -149,60 +149,59 @@ async def classify_incoming_case(
         }
 
 
-_NL_TO_CYPHER_SYSTEM = """You are an expert Neo4j Cypher query generator for an AI litigation knowledge graph.
+_NL_TO_CYPHER_SYSTEM = """You are a Neo4j Cypher expert for an AI litigation knowledge graph.
 
-GRAPH SCHEMA
-============
-Nodes and their properties:
-- Case: id, caption, status, dateFiled, jurisdictionType, areaOfApplication (list),
-        causeOfAction (list), algorithmNames (list), isClassAction, summarySignificance, source
-- Organization: name, canonicalName
-- AISystem: name, category  (category values: LLM, biometric, autonomous, recommender, classifier, other)
+NODE LABELS AND PROPERTIES (exact — do not invent others):
+- Case: caption, status('Active'|'Inactive'), dateFiled('YYYY-MM-DD'), jurisdictionType,
+        areaOfApplication(list), causeOfAction(list), algorithmNames(list),
+        isClassAction('Yes'|'No'|'Y'), id
+- Organization: canonicalName, name
+- AISystem: name, category('LLM'|'biometric'|'autonomous'|'recommender'|'classifier'|'other')
 - LegalTheory: name
 - Court: name, jurisdictionType
 
-Relationships (direction matters):
+RELATIONSHIPS (exact — do not invent others):
   (Case)-[:NAMED_DEFENDANT]->(Organization)
   (Case)-[:INVOLVES_SYSTEM]->(AISystem)
   (Case)-[:ASSERTS_CLAIM]->(LegalTheory)
   (Case)-[:FILED_IN]->(Court)
 
-STRICT RULES
-============
-1. ONLY use: MATCH, WHERE, WITH, RETURN, ORDER BY, LIMIT, COUNT, DISTINCT, COLLECT
-2. NEVER use: DELETE, DETACH DELETE, DROP, CREATE, MERGE, SET, REMOVE
-3. ALWAYS add LIMIT (maximum 50)
-4. ALWAYS use readable aliases in RETURN clause (e.g. c.caption AS caseName, NOT c.caption)
-5. Text searches: use toLower() on both sides for case-insensitive matching
-6. List property searches: use ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'keyword')
-7. Date comparisons: dateFiled is stored as "YYYY-MM-DD" string — compare with >= / <=
-8. For "more than N cases" or counting: use WITH agg pattern before WHERE
-9. Never use parameters {} — inline all values directly in the query
+RULES:
+1. Use ONLY the node labels and relationship types listed above. Never invent new ones.
+2. NEVER use DELETE, DROP, CREATE, MERGE, SET, REMOVE, DETACH.
+3. ALWAYS add LIMIT (max 50).
+4. ALWAYS alias every RETURN column: RETURN c.caption AS caseName (never bare c.caption).
+5. Write Cypher on ONE line — no newline characters inside the cypher string value.
+6. Keep explanation to max 12 words.
+7. For list properties: ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'keyword')
+8. For text match: toLower(o.canonicalName) CONTAINS 'keyword'
+9. isClassAction is a STRING: use c.isClassAction IN ['Yes','Y'] not boolean true/false.
+10. For count-then-filter: MATCH ... WITH var, COUNT(...) AS cnt WHERE cnt > N RETURN ...
 
-QUERY EXAMPLES
-==============
+EXAMPLES:
 Q: Which organizations have been sued in more than 3 AI cases?
-A: {"cypher": "MATCH (c:Case)-[:NAMED_DEFENDANT]->(o:Organization) WITH o, COUNT(c) AS caseCount WHERE caseCount > 3 RETURN o.canonicalName AS organization, caseCount ORDER BY caseCount DESC LIMIT 50", "explanation": "Counts cases per defendant organization, filters to those named in more than 3 cases, and returns them ordered by most-sued first.", "parameters": {}}
+{"cypher":"MATCH (c:Case)-[:NAMED_DEFENDANT]->(o:Organization) WITH o, COUNT(c) AS caseCount WHERE caseCount > 3 RETURN o.canonicalName AS organization, caseCount ORDER BY caseCount DESC LIMIT 50","explanation":"Organizations appearing as defendant more than 3 times.","parameters":{}}
 
-Q: Show me all facial recognition cases filed in federal courts.
-A: {"cypher": "MATCH (c:Case)-[:FILED_IN]->(court:Court) WHERE ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'facial') AND toLower(court.jurisdictionType) CONTAINS 'federal' RETURN c.caption AS caseName, c.dateFiled AS dateFiled, court.name AS court LIMIT 50", "explanation": "Finds cases tagged with facial recognition in their area of application that were filed in federal courts.", "parameters": {}}
+Q: Show me all facial recognition cases filed in federal courts
+{"cypher":"MATCH (c:Case)-[:FILED_IN]->(court:Court) WHERE ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'facial') AND toLower(court.jurisdictionType) CONTAINS 'federal' RETURN c.caption AS caseName, c.dateFiled AS dateFiled, court.name AS courtName LIMIT 50","explanation":"Facial recognition cases in federal courts.","parameters":{}}
 
-Q: Which AI systems appear in employment discrimination lawsuits?
-A: {"cypher": "MATCH (c:Case)-[:INVOLVES_SYSTEM]->(a:AISystem) WHERE ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'employment') OR ANY(x IN c.causeOfAction WHERE toLower(x) CONTAINS 'discrimination') RETURN DISTINCT a.name AS aiSystem, a.category AS category, COUNT(c) AS caseCount ORDER BY caseCount DESC LIMIT 50", "explanation": "Finds AI systems linked to cases involving employment or discrimination causes of action.", "parameters": {}}
+Q: Cases where Meta Platforms is a defendant
+{"cypher":"MATCH (c:Case)-[:NAMED_DEFENDANT]->(o:Organization) WHERE toLower(o.canonicalName) CONTAINS 'meta' RETURN c.caption AS caseName, c.dateFiled AS dateFiled, c.status AS status LIMIT 50","explanation":"Cases listing Meta Platforms as named defendant.","parameters":{}}
 
-Q: Find class action cases involving generative AI filed after 2022.
-A: {"cypher": "MATCH (c:Case)-[:INVOLVES_SYSTEM]->(a:AISystem) WHERE c.isClassAction = 'Yes' AND c.dateFiled >= '2023-01-01' AND (toLower(a.category) CONTAINS 'llm' OR ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'generative')) RETURN c.caption AS caseName, c.dateFiled AS dateFiled, a.name AS aiSystem LIMIT 50", "explanation": "Finds class action cases linked to LLM or generative AI systems filed after 2022.", "parameters": {}}
+Q: Find class action cases involving generative AI filed after 2022
+{"cypher":"MATCH (c:Case) WHERE c.isClassAction IN ['Yes','Y'] AND c.dateFiled > '2022-12-31' AND ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'generative') RETURN c.caption AS caseName, c.dateFiled AS dateFiled, c.status AS status LIMIT 50","explanation":"Class actions involving generative AI after 2022.","parameters":{}}
 
 Q: What legal theories are most common in autonomous vehicle litigation?
-A: {"cypher": "MATCH (c:Case)-[:INVOLVES_SYSTEM]->(a:AISystem), (c)-[:ASSERTS_CLAIM]->(lt:LegalTheory) WHERE toLower(a.category) CONTAINS 'autonomous' OR ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'vehicle') RETURN lt.name AS legalTheory, COUNT(c) AS caseCount ORDER BY caseCount DESC LIMIT 50", "explanation": "Counts legal theories asserted in cases involving autonomous systems or vehicles.", "parameters": {}}
+{"cypher":"MATCH (c:Case)-[:ASSERTS_CLAIM]->(lt:LegalTheory) WHERE ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'autonomous') RETURN lt.name AS legalTheory, COUNT(c) AS caseCount ORDER BY caseCount DESC LIMIT 50","explanation":"Most frequent legal theories in autonomous vehicle cases.","parameters":{}}
 
-Q: Which cases involve both copyright infringement and AI training data?
-A: {"cypher": "MATCH (c:Case)-[:ASSERTS_CLAIM]->(lt:LegalTheory) WHERE toLower(lt.name) CONTAINS 'copyright' WITH c MATCH (c)-[:INVOLVES_SYSTEM]->(a:AISystem) WHERE ANY(x IN c.causeOfAction WHERE toLower(x) CONTAINS 'training') OR ANY(x IN c.algorithmNames WHERE toLower(x) CONTAINS 'training') RETURN DISTINCT c.caption AS caseName, c.dateFiled AS dateFiled, c.status AS status LIMIT 50", "explanation": "Finds cases asserting copyright claims that also involve AI training-related systems or causes of action.", "parameters": {}}
+Q: Which AI systems appear in employment discrimination lawsuits?
+{"cypher":"MATCH (c:Case)-[:INVOLVES_SYSTEM]->(a:AISystem) WHERE ANY(x IN c.areaOfApplication WHERE toLower(x) CONTAINS 'employment') RETURN DISTINCT a.name AS aiSystem, a.category AS category, COUNT(c) AS caseCount ORDER BY caseCount DESC LIMIT 50","explanation":"AI systems in employment-related litigation.","parameters":{}}
 
-OUTPUT FORMAT
-=============
-Respond with ONLY this JSON object (no markdown, no code fences, no prose):
-{"cypher": string, "explanation": string, "parameters": {}}"""
+Q: Which cases involve copyright infringement?
+{"cypher":"MATCH (c:Case)-[:ASSERTS_CLAIM]->(lt:LegalTheory) WHERE toLower(lt.name) CONTAINS 'copyright' RETURN c.caption AS caseName, c.dateFiled AS dateFiled, c.status AS status LIMIT 50","explanation":"Cases asserting copyright infringement claims.","parameters":{}}
+
+OUTPUT: Respond ONLY with this JSON (no markdown, no code fences, no prose):
+{"cypher": "...", "explanation": "...", "parameters": {}}"""
 
 
 async def natural_language_to_cypher(api_key: str, question: str) -> dict:
@@ -211,7 +210,7 @@ async def natural_language_to_cypher(api_key: str, question: str) -> dict:
     for attempt in range(3):
         try:
             text = await _generate(
-                api_key, _NL_TO_CYPHER_SYSTEM, user, max_tokens=1024, json_mode=True
+                api_key, _NL_TO_CYPHER_SYSTEM, user, max_tokens=512, json_mode=True
             )
             result = _extract_json(text)
             # Safety guard: block write operations

@@ -1,7 +1,15 @@
+import os
 from functools import lru_cache
 from pydantic_settings import BaseSettings
 from neo4j import AsyncDriver
 from app.services import neo4j_service
+
+# Resolve .env from repo root regardless of where uvicorn is launched from.
+# dependencies.py lives at  backend/app/api/dependencies.py
+# .env lives at             <repo_root>/.env  (three levels up)
+_ENV_FILE = os.path.normpath(
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".env")
+)
 
 
 class Settings(BaseSettings):
@@ -12,7 +20,7 @@ class Settings(BaseSettings):
     courtlistener_base_url: str = "https://www.courtlistener.com"
 
     class Config:
-        env_file = ".env"
+        env_file = _ENV_FILE
         extra = "ignore"
 
 

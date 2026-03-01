@@ -27,7 +27,7 @@ Transforms 375+ AI litigation cases from a flat spreadsheet into a living, query
 |--------|-------------|
 | **Graph Explorer** | Interactive D3.js force-graph — explore defendant networks, click nodes to drill into case neighborhoods |
 | **Research Navigator** | Natural language → Cypher → plain-English narrative powered by Gemini |
-| **Wave Detector** | Detects litigation clusters (≥3 cases against same defendant in 60 days) with AI-generated briefing notes |
+| **Wave Detector** | Detects litigation clusters (≥3 cases against same defendant within a configurable window — default 90 days) with AI-generated briefing notes |
 | **Review Queue** | Human-in-the-loop review for low-confidence AI extractions (0.70–0.84 threshold) |
 | **Live Ingest** | Weekly APScheduler job polls CourtListener API for new AI cases and classifies them automatically |
 | **Secondary Sources** | Links cases to academic papers, news articles, and other secondary materials |
@@ -346,8 +346,10 @@ All routes are prefixed with `/api/v1`. Full interactive docs at `/docs`.
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `GET` | `/graph/overview` | Node and relationship counts |
-| `GET` | `/graph/defendants?limit=20` | Top defendants by case count |
+| `GET` | `/graph/defendants?limit=20` | Top defendants by case count (max 500) |
 | `GET` | `/graph/defendants/{org}/cases` | All cases for a defendant |
+| `GET` | `/graph/orgs/search?q=openai` | Partial-name org search, ranked by case count |
+| `GET` | `/graph/cases-by-year` | Case counts grouped by filing year (2016+) |
 | `GET` | `/graph/ai-systems?limit=15` | Top AI systems by case count |
 | `GET` | `/graph/theories/{theory}/cases` | Cases asserting a legal theory |
 
@@ -379,7 +381,7 @@ Response includes: generated Cypher, explanation, raw results, and a plain-Engli
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | `POST` | `/ingest/trigger` | Manually trigger CourtListener ingestion |
-| `GET` | `/ingest/waves?window_days=60&threshold=3` | Detect litigation waves |
+| `GET` | `/ingest/waves?window_days=90&threshold=3` | Detect litigation waves |
 | `GET` | `/ingest/history` | Last 10 ingestion run records |
 | `GET` | `/ingest/staged` | Cases pending human review from auto-ingest |
 
@@ -398,13 +400,13 @@ Response includes: generated Cypher, explanation, raw results, and a plain-Engli
 
 | Route | Page | Description |
 |-------|------|-------------|
-| `/` | Dashboard | Stats cards, recent cases, graph overview |
+| `/` | Dashboard | Animated stat cards, stacked-bar defendant/AI-system tables, filing trend chart |
 | `/graph` | Graph Explorer | D3 force graph — defendant influence map |
 | `/search` | Research Navigator | Natural language research interface |
 | `/waves` | Wave Detector | Litigation cluster detection |
 | `/review` | Review Queue | Human-in-the-loop extraction review |
 | `/cases/:id` | Case Detail | Full case view with related nodes |
-| `/api` | API Explorer | Live REST console — execute all 18 endpoints in-browser |
+| `/api` | API Explorer | Live REST console — execute all 20 endpoints in-browser |
 | `/pipeline` | Architecture | System diagram + before/after data transformation showcase |
 
 ---

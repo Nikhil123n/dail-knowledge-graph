@@ -30,6 +30,23 @@ const GROUPS = [
         params: [{ name: "org", type: "path", default: "", placeholder: "e.g. Clearview AI" }],
       },
       {
+        id: "graph-orgs-search",
+        method: "GET",
+        path: "/api/v1/graph/orgs/search",
+        description: "Search organizations by partial name match, ranked by case count.",
+        params: [
+          { name: "q", type: "query", default: "", placeholder: "e.g. openai" },
+          { name: "limit", type: "query", default: "20", placeholder: "20" },
+        ],
+      },
+      {
+        id: "graph-cases-by-year",
+        method: "GET",
+        path: "/api/v1/graph/cases-by-year",
+        description: "Case counts grouped by filing year (2016 to present) — powers the filing trend chart.",
+        params: [],
+      },
+      {
         id: "graph-ai-systems",
         method: "GET",
         path: "/api/v1/graph/ai-systems",
@@ -116,7 +133,7 @@ const GROUPS = [
         path: "/api/v1/ingest/waves",
         description: "Detect litigation waves — defendants with ≥ threshold cases within window_days.",
         params: [
-          { name: "window_days", type: "query", default: "60", placeholder: "60" },
+          { name: "window_days", type: "query", default: "90", placeholder: "90" },
           { name: "threshold", type: "query", default: "3", placeholder: "3" },
         ],
       },

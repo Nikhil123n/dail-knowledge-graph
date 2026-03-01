@@ -60,27 +60,31 @@ export default function WaveDetector() {
   const [waves, setWaves] = useState([]);
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [windowDays, setWindowDays] = useState(60);
+  const [windowDays, setWindowDays] = useState(90);
   const [threshold, setThreshold] = useState(3);
   const [ingestMsg, setIngestMsg] = useState(null);
 
-  const loadData = async () => {
+  const loadWaves = async (days, thresh) => {
     setLoading(true);
     try {
-      const [w, h] = await Promise.all([
-        fetchWaves({ window_days: windowDays, threshold }),
-        fetchIngestHistory(),
-      ]);
+      const w = await fetchWaves({ window_days: days, threshold: thresh });
       setWaves(w);
-      setHistory(h);
     } finally {
       setLoading(false);
     }
   };
 
+  // Load ingest history once on mount
   useEffect(() => {
-    loadData();
+    fetchIngestHistory().then(setHistory);
   }, []);
+
+  // Re-run wave detection whenever window or threshold changes
+  useEffect(() => {
+    loadWaves(windowDays, threshold);
+  }, [windowDays, threshold]);
+
+  const loadData = () => loadWaves(windowDays, threshold);
 
   const handleIngest = async () => {
     setIngestMsg("Triggering ingestion...");
@@ -114,7 +118,7 @@ export default function WaveDetector() {
       )}
 
       {/* Controls */}
-      <div className="bg-slate-800 rounded-lg p-4 flex gap-6 items-end">
+      <div className="bg-slate-800 rounded-lg p-4 flex gap-6 items-end flex-wrap">
         <div>
           <label className="block text-xs text-slate-400 uppercase mb-1">Window (days)</label>
           <select
@@ -126,6 +130,7 @@ export default function WaveDetector() {
             <option value={60}>60 days</option>
             <option value={90}>90 days</option>
             <option value={180}>180 days</option>
+            <option value={365}>365 days</option>
           </select>
         </div>
         <div>
@@ -141,12 +146,9 @@ export default function WaveDetector() {
             <option value={10}>10+</option>
           </select>
         </div>
-        <button
-          onClick={loadData}
-          className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-        >
-          Re-run Detection
-        </button>
+        {loading && (
+          <span className="text-slate-400 text-sm animate-pulse pb-1.5">Detecting...</span>
+        )}
       </div>
 
       {loading ? (

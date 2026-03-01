@@ -8,8 +8,11 @@ const api = axios.create({ baseURL: `${BASE}/api/v1` });
 export const fetchOverview = () => api.get("/graph/overview").then((r) => r.data);
 export const fetchTopDefendants = (limit = 20) =>
   api.get("/graph/defendants", { params: { limit } }).then((r) => r.data);
+export const searchOrganizations = (q, limit = 20) =>
+  api.get("/graph/orgs/search", { params: { q, limit } }).then((r) => r.data);
 export const fetchDefendantCases = (orgName) =>
   api.get(`/graph/defendants/${encodeURIComponent(orgName)}/cases`).then((r) => r.data);
+export const fetchCasesByYear = () => api.get("/graph/cases-by-year").then((r) => r.data);
 export const fetchTopAISystems = (limit = 15) =>
   api.get("/graph/ai-systems", { params: { limit } }).then((r) => r.data);
 export const fetchCasesByTheory = (theory) =>

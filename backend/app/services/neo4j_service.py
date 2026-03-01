@@ -85,6 +85,35 @@ async def get_top_defendants(driver: AsyncDriver, limit: int = 20) -> list:
         return [dict(r) async for r in result]
 
 
+async def get_cases_by_year(driver: AsyncDriver) -> list:
+    async with driver.session() as session:
+        result = await session.run("""
+            MATCH (c:Case)
+            WHERE c.dateFiled IS NOT NULL AND c.dateFiled <> ''
+            WITH substring(c.dateFiled, 0, 4) AS year, count(c) AS count
+            WHERE year >= '2016'
+            RETURN year, count
+            ORDER BY year
+        """)
+        return [dict(r) async for r in result]
+
+
+async def search_organizations(driver: AsyncDriver, query: str, limit: int = 20) -> list:
+    async with driver.session() as session:
+        result = await session.run("""
+            MATCH (o:Organization)<-[:NAMED_DEFENDANT]-(c:Case)
+            WHERE toLower(o.canonicalName) CONTAINS toLower($query)
+               OR toLower(o.name) CONTAINS toLower($query)
+            WITH o, count(c) AS caseCount,
+                 sum(CASE WHEN c.status = 'Active' THEN 1 ELSE 0 END) AS activeCount,
+                 sum(CASE WHEN c.status = 'Inactive' THEN 1 ELSE 0 END) AS inactiveCount
+            ORDER BY caseCount DESC LIMIT $limit
+            RETURN o.canonicalName AS canonicalName, caseCount,
+                   activeCount, inactiveCount
+        """, query=query, limit=limit)
+        return [dict(r) async for r in result]
+
+
 async def get_defendant_cases(driver: AsyncDriver, org_name: str) -> list:
     async with driver.session() as session:
         result = await session.run("""

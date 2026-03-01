@@ -38,7 +38,7 @@ const ARCH_LAYERS = [
     color: "border-sky-500 bg-sky-950",
     badge: "bg-sky-800 text-sky-200",
     nodes: [
-      { icon: "⚡", title: "FastAPI (Python 3.11)", sub: "18 async REST endpoints · /api/v1/*" },
+      { icon: "⚡", title: "FastAPI (Python 3.13)", sub: "20 async REST endpoints · /api/v1/*" },
     ],
   },
   {
@@ -413,7 +413,33 @@ export default function DataPipeline() {
           </button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        {/* Raw CSV view */}
+        {showRaw && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold px-2 py-0.5 rounded bg-amber-900 text-amber-200 uppercase tracking-wide">
+                Raw CSV — as it exists on disk
+              </span>
+              <span className="text-xs text-slate-500">Header row + 1 data row — 38 columns total</span>
+            </div>
+            <div className="bg-slate-950 rounded-lg border border-slate-700 overflow-x-auto">
+              <pre className="text-[11px] font-mono text-slate-400 p-4 whitespace-pre leading-relaxed">
+{`Caption,Case_Number,Organizations_involved,Cause_of_Action_Text,Name_of_Algorithm_Text,Jurisdiction_Filed,Status_Disposition,Date_Action_Filed,Area_of_Application_Text,Summary_of_Significance,...
+
+`}<span className="text-white">"ACLU v. Clearview AI, Inc."</span>{`,2,`}<span className="text-amber-300">"ACLU; Clearview AI, Inc."</span>{`,`}<span className="text-violet-300">"BIPA, Privacy"</span>{`,`}<span className="text-sky-300">"Clearview Facial Recognition"</span>{`,`}<span className="text-emerald-300">"N.D. Ill."</span>{`,active,05/28/2020,`}<span className="text-rose-300">"Facial Recognition"</span>{`,"First major BIPA suit against facial recognition AI",...`}
+              </pre>
+            </div>
+            <div className="bg-red-950 border border-red-800 rounded p-3 text-xs text-red-200 space-y-1">
+              <p className="font-semibold text-red-100">Problems with this format:</p>
+              <p>✗ <span className="font-mono text-amber-300">Organizations_involved</span> is a semicolon-separated string — not a relationship</p>
+              <p>✗ <span className="font-mono text-violet-300">Cause_of_Action_Text</span> mixes multiple legal theories into one cell</p>
+              <p>✗ <span className="font-mono text-sky-300">Name_of_Algorithm_Text</span> is free-text — no typed AI system entity</p>
+              <p>✗ No way to query "all cases where Clearview AI is defendant" without a full table scan</p>
+            </div>
+          </div>
+        )}
+
+        <div className={`grid grid-cols-1 lg:grid-cols-2 gap-6 items-start ${showRaw ? "hidden" : ""}`}>
           {/* Left — Excel / CSV row */}
           <div className="space-y-2">
             <div className="flex items-center gap-2 mb-3">

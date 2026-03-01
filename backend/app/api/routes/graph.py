@@ -14,11 +14,27 @@ async def graph_overview(driver: AsyncDriver = Depends(get_neo4j)):
 
 @router.get("/defendants")
 async def top_defendants(
-    limit: int = Query(20, ge=1, le=100),
+    limit: int = Query(20, ge=1, le=500),
     driver: AsyncDriver = Depends(get_neo4j),
 ):
     """Return organizations ranked by number of cases in which they are named defendants."""
     return await neo4j_service.get_top_defendants(driver, limit=limit)
+
+
+@router.get("/cases-by-year")
+async def cases_by_year(driver: AsyncDriver = Depends(get_neo4j)):
+    """Return case counts grouped by filing year (2016+)."""
+    return await neo4j_service.get_cases_by_year(driver)
+
+
+@router.get("/orgs/search")
+async def search_organizations(
+    q: str = Query(..., min_length=1),
+    limit: int = Query(20, ge=1, le=50),
+    driver: AsyncDriver = Depends(get_neo4j),
+):
+    """Search organizations by partial name match, ranked by case count."""
+    return await neo4j_service.search_organizations(driver, query=q, limit=limit)
 
 
 @router.get("/defendants/{org_name}/cases")
