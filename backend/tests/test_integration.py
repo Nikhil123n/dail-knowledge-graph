@@ -152,6 +152,28 @@ async def test_nl_to_cypher_safety_guard():
     assert "DELETE" not in result["cypher"]
 
 
+@pytest.mark.asyncio
+async def test_generate_falls_back_to_openrouter_when_gemini_fails():
+    from app.services import claude_service
+    settings = MagicMock(openrouter_api_key="or-key", openrouter_model="google/gemini-3.8-flash")
+    with patch("app.services.claude_service.get_client", side_effect=Exception("402 credits depleted")), \
+         patch("app.services.claude_service.get_settings", return_value=settings), \
+         patch("app.services.claude_service._generate_openrouter", AsyncMock(return_value="from openrouter")) as mock_or:
+        result = await claude_service._generate("key", "sys", "user", json_mode=True)
+    assert result == "from openrouter"
+    mock_or.assert_awaited_once_with(settings, "sys", "user", 1024, True)
+
+
+@pytest.mark.asyncio
+async def test_generate_reraises_when_no_openrouter_key():
+    from app.services import claude_service
+    settings = MagicMock(openrouter_api_key="")
+    with patch("app.services.claude_service.get_client", side_effect=Exception("402 credits depleted")), \
+         patch("app.services.claude_service.get_settings", return_value=settings):
+        with pytest.raises(Exception, match="402"):
+            await claude_service._generate("key", "sys", "user")
+
+
 # ---- Graph models tests ----
 
 def test_graph_overview_model():

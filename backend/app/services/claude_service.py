@@ -11,9 +11,14 @@ import logging
 import asyncio
 from typing import Optional
 
+import httpx
+
+from app.api.dependencies import get_settings
+
 logger = logging.getLogger(__name__)
 
 MODEL = "gemini-3.8-flash"
+OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 _client: Optional[genai.Client] = None
 
@@ -52,20 +57,46 @@ def _extract_json(text: str) -> dict:
 async def _generate(
     api_key: str, system: str, user: str, max_tokens: int = 1024, json_mode: bool = False
 ) -> str:
-    """Shared async wrapper around Gemini generate_content."""
-    client = get_client(api_key)
-    config = types.GenerateContentConfig(
-        system_instruction=system,
-        temperature=0.2,
-        max_output_tokens=max_tokens,
-        response_mime_type="application/json" if json_mode else "text/plain",
-    )
-    response = await client.aio.models.generate_content(
-        model=MODEL,
-        contents=user,
-        config=config,
-    )
-    return response.text.strip()
+    """Shared async wrapper: Gemini first, OpenRouter if Gemini fails and a key is configured."""
+    try:
+        client = get_client(api_key)
+        config = types.GenerateContentConfig(
+            system_instruction=system,
+            temperature=0.2,
+            max_output_tokens=max_tokens,
+            response_mime_type="application/json" if json_mode else "text/plain",
+        )
+        response = await client.aio.models.generate_content(
+            model=MODEL,
+            contents=user,
+            config=config,
+        )
+        return response.text.strip()
+    except Exception as e:
+        settings = get_settings()
+        if not settings.openrouter_api_key:
+            raise
+        logger.warning(f"Gemini failed ({e}); falling back to OpenRouter {settings.openrouter_model}")
+        return await _generate_openrouter(settings, system, user, max_tokens, json_mode)
+
+
+async def _generate_openrouter(settings, system: str, user: str, max_tokens: int, json_mode: bool) -> str:
+    body = {
+        "model": settings.openrouter_model,
+        "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+        "temperature": 0.2,
+        "max_tokens": max_tokens,
+    }
+    if json_mode:
+        body["response_format"] = {"type": "json_object"}
+    async with httpx.AsyncClient(timeout=60) as http:
+        resp = await http.post(
+            OPENROUTER_URL,
+            headers={"Authorization": f"Bearer {settings.openrouter_api_key}"},
+            json=body,
+        )
+    resp.raise_for_status()
+    return resp.json()["choices"][0]["message"]["content"].strip()
 
 
 async def extract_entities(

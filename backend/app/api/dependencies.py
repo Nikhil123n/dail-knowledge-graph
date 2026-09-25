@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = "dail_password"
     gemini_api_key: str = ""
+    openrouter_api_key: str = ""
+    openrouter_model: str = "google/gemini-3.8-flash"
     courtlistener_base_url: str = "https://www.courtlistener.com"
 
     class Config:
