@@ -81,7 +81,7 @@ in their third BIPA claim this month? We would too."
 
 "Judges, policy researchers, journalists — they don't speak Cypher. They speak
 English. So we built a **natural language research interface** powered by
-Google Gemini 2.5 Flash."
+Google Gemini 3.8 Flash."
 
 {Demo: Type into the search bar — "Which organizations face the most BIPA claims in Illinois?"}
 
@@ -221,4 +221,4 @@ it deserve tools as sophisticated as the technology they're watching."
 ---
 
 *DAIL Living Case Graph — GWU Law AI Litigation Knowledge Graph*
-*Built with Neo4j · FastAPI · React · D3.js · Google Gemini 2.5 Flash*
+*Built with Neo4j · FastAPI · React · D3.js · Google Gemini 3.8 Flash*

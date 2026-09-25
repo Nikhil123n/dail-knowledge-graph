@@ -466,7 +466,7 @@ export default function ApiExplorer() {
       <div className="bg-indigo-950 border border-indigo-700 rounded-lg px-4 py-3 text-sm text-indigo-200">
         Click any endpoint to expand it, fill in parameters, and execute a live request against
         the running backend. All Search queries use{" "}
-        <span className="font-mono text-indigo-300">Gemini 2.5 Flash</span> to translate natural
+        <span className="font-mono text-indigo-300">Gemini 3.8 Flash</span> to translate natural
         language to Cypher in real time.
       </div>
 

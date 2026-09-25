@@ -40,7 +40,7 @@ conversational research interface.
 - Before/after data transformation showcase (Excel flat row → graph nodes)
 
 ## AI Models Used
-- **gemini-2.5-flash (Google Gemini)**: Entity extraction, case classification, NL→Cypher, narrative generation
+- **gemini-3.8-flash (Google Gemini)**: Entity extraction, case classification, NL→Cypher, narrative generation
 
 ## Data Sources
 - DAIL dataset (GWU Law) — 375+ AI litigation cases

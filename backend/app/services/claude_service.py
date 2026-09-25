@@ -13,7 +13,7 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-3.8-flash"
 
 _client: Optional[genai.Client] = None
 

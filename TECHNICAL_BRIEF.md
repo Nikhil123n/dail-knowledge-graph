@@ -43,7 +43,7 @@ Gephi is an open-source desktop application for network analysis. Researchers us
 | Capability | Neo4j Bloom | Gephi | DAIL Living Case Graph |
 |---|---|---|---|
 | Visualize a graph | Yes | Yes | Yes |
-| Natural language query (free-form) | No — template-only | No | Yes — Gemini 2.5 Flash |
+| Natural language query (free-form) | No — template-only | No | Yes — Gemini 3.8 Flash |
 | Generate plain-English research narrative | No | No | Yes |
 | Show the query it ran (explainability) | No | No | Yes |
 | Detect behavioral patterns (waves) | No | No | Yes |
@@ -87,7 +87,7 @@ FASTAPI BACKEND (Python 3.11, async)
     └── /review/*     ── Human-in-the-loop approval queue
     │
     ├── neo4j_service.py    (all Cypher, schema init, constraints)
-    ├── claude_service.py   (Gemini 2.5 Flash API — entity extract, classify, narrate)
+    ├── claude_service.py   (Gemini 3.8 Flash API — entity extract, classify, narrate)
     ├── wave_detector.py    (pattern detection algorithm)
     └── courtlistener.py    (federal court REST client)
     │
@@ -104,7 +104,7 @@ NEO4J 5 COMMUNITY
 **Why this architecture?**
 - **Neo4j over PostgreSQL/MongoDB:** Relationships are first-class citizens in Neo4j. A query like "find all cases sharing two or more defendants AND the same legal theory" is a 2-line Cypher query. In SQL it is a multi-table join with subqueries. In a document store it is a full collection scan.
 - **FastAPI over Flask/Django:** Native async support means Neo4j queries and Gemini API calls run concurrently without blocking each other. Critical for the NL search pipeline which chains two AI calls.
-- **Gemini 2.5 Flash over GPT-4o-mini:** Higher context window, faster response time, and Google's structured output schema enforcement which is essential for reliable JSON extraction from legal text.
+- **Gemini 3.8 Flash over GPT-4o-mini:** Higher context window, faster response time, and Google's structured output schema enforcement which is essential for reliable JSON extraction from legal text.
 - **APScheduler over Celery/cron:** Zero infrastructure overhead. The scheduler lives inside the FastAPI process, requiring no separate Redis broker or worker processes.
 
 ---
@@ -114,7 +114,7 @@ NEO4J 5 COMMUNITY
 ### Feature 1 — The NL → Cypher → Narrative Pipeline
 
 **What it does:** A user types a research question in plain English. The system:
-1. Sends the question + graph schema to Gemini 2.5 Flash
+1. Sends the question + graph schema to Gemini 3.8 Flash
 2. Gemini generates a Cypher query
 3. The query is validated against a read-only whitelist (no WRITE, CREATE, DELETE allowed)
 4. The query executes against Neo4j
@@ -223,7 +223,7 @@ NEO4J 5 COMMUNITY
 |---|---|---|
 | Graph Database | Neo4j 5 Community | Native graph storage with Cypher — relationships are indexed, not computed. Faster multi-hop traversal than any relational alternative. |
 | Backend Framework | FastAPI (Python 3.11) | Native async. Pydantic validation built in. Auto-generates OpenAPI docs. Lightest path to a production-grade API. |
-| AI Provider | Google Gemini 2.5 Flash | Structured output enforcement (required for reliable JSON from legal text). High context window for long case documents. |
+| AI Provider | Google Gemini 3.8 Flash | Structured output enforcement (required for reliable JSON from legal text). High context window for long case documents. |
 | Graph Driver | neo4j (official async Python driver) | Async session management, connection pooling, Bolt protocol support out of the box. |
 | Scheduler | APScheduler 3.x | Zero external dependencies. Runs inside FastAPI process. No Redis, no Celery, no separate worker. |
 | Frontend Framework | React 18 + Vite | Component model maps naturally to the multi-panel UI. Vite's HMR makes iteration fast. |
@@ -287,5 +287,5 @@ NEO4J 5 COMMUNITY
 ---
 
 *DAIL Living Case Graph*
-*Neo4j 5 · FastAPI · Google Gemini 2.5 Flash · React 18 · D3.js · CourtListener API*
+*Neo4j 5 · FastAPI · Google Gemini 3.8 Flash · React 18 · D3.js · CourtListener API*
 *GWU Law — Database of AI Litigation*

@@ -52,7 +52,7 @@ Transforms 375+ AI litigation cases from a flat spreadsheet into a living, query
 │                                                             │
 │  ┌──────────────────────┐   ┌──────────────────────────┐   │
 │  │  neo4j_service.py    │   │  claude_service.py        │   │
-│  │  (all Cypher)        │   │  (Gemini 2.5 Flash API)   │   │
+│  │  (all Cypher)        │   │  (Gemini 3.8 Flash API)   │   │
 │  └──────────────────────┘   └──────────────────────────┘   │
 │                                                             │
 │  ┌──────────────────────┐   ┌──────────────────────────┐   │
@@ -436,7 +436,7 @@ In Docker, the frontend nginx config proxies `/api/` requests to `http://backend
 |-------|-----------|
 | Graph DB | Neo4j 5 Community (Docker) |
 | Backend | Python 3.11, FastAPI, neo4j driver (async), pydantic-settings |
-| AI | Google Gemini 2.5 Flash (`google-genai` SDK) |
+| AI | Google Gemini 3.8 Flash (`google-genai` SDK) |
 | Scheduler | APScheduler 3.x (`AsyncIOScheduler`) |
 | Data | pandas, openpyxl |
 | Frontend | React 18, Vite, Tailwind CSS v4, D3.js v7, React Router v6 |

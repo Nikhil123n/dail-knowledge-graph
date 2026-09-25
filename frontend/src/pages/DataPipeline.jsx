@@ -17,7 +17,7 @@ const ARCH_LAYERS = [
     badge: "bg-violet-800 text-violet-200",
     nodes: [
       { icon: "🐍", title: "pandas + openpyxl", sub: "Excel → clean CSV pipeline" },
-      { icon: "🤖", title: "Gemini 2.5 Flash", sub: "Entity extract · Classify · NL→Cypher" },
+      { icon: "🤖", title: "Gemini 3.8 Flash", sub: "Entity extract · Classify · NL→Cypher" },
       { icon: "⏱️", title: "APScheduler", sub: "Weekly CourtListener ingest job" },
     ],
   },
@@ -182,7 +182,7 @@ function ArchDiagram() {
       {/* AI + Scheduler side annotations */}
       <div className="mt-4 border-t border-slate-700 pt-4 grid grid-cols-2 gap-4 text-xs text-slate-400">
         <div className="space-y-1">
-          <p className="font-semibold text-slate-300">AI Touchpoints (Gemini 2.5 Flash)</p>
+          <p className="font-semibold text-slate-300">AI Touchpoints (Gemini 3.8 Flash)</p>
           <p>• Entity extraction from free-text organizations field</p>
           <p>• Case classification for CourtListener ingestion</p>
           <p>• Natural language → Cypher translation</p>
@@ -318,7 +318,7 @@ const PIPELINE_STEPS = [
     step: "4",
     color: "bg-sky-500",
     title: "entity_extractor.py — AI Enrichment",
-    desc: "Gemini 2.5 Flash reads the Organizations_involved free-text field and extracts typed Organization and AISystem entities with confidence scores. ≥0.85 auto-approved; 0.70–0.84 queued for human review.",
+    desc: "Gemini 3.8 Flash reads the Organizations_involved free-text field and extracts typed Organization and AISystem entities with confidence scores. ≥0.85 auto-approved; 0.70–0.84 queued for human review.",
   },
   {
     step: "5",
